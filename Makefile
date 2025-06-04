@@ -20,16 +20,13 @@ all: build
 
 # Download ANTLR4 jar if needed
 download-antlr:
-	@if [ ! -f $(ANTLR_JAR) ]; then \
-		echo "Downloading ANTLR4 JAR..." && \
-		curl -O https://www.antlr.org/download/$(ANTLR_JAR); \
-	fi
+	@powershell -Command "if (-not(Test-Path $(ANTLR_JAR))) { Write-Host 'Downloading ANTLR4 JAR...'; curl -O https://www.antlr.org/download/$(ANTLR_JAR) }"
 
 # Generate parser code from grammar
 .PHONY: generate
 generate: download-antlr
 	@echo "Generating parser from grammar..."
-	java -jar $(ANTLR_JAR) -Dlanguage=Go -visitor -package parser -o $(PARSER_DIR) $(GRAMMAR_DIR)/MyLang.g4
+	@powershell -Command "& 'C:\Program Files\Java\jdk-24\bin\java.exe' -jar $(ANTLR_JAR) -Dlanguage=Go -visitor -package parser -o $(PARSER_DIR) $(GRAMMAR_DIR)/MyLang.g4"
 
 # Run all tests
 .PHONY: test

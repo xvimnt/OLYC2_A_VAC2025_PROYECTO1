@@ -1,329 +1,356 @@
 grammar MyLang;
 
-// Parser Rules for V language
+// Parser Rules
 program
-    : moduleDeclaration? importDeclaration* statement* EOF
+    : moduleDecl? (topLevelDecl | statement)* EOF
     ;
 
-moduleDeclaration
-    : 'module' moduleName
+moduleDecl
+    : MODULE name=IDENTIFIER
     ;
 
-moduleName
-    : IDENTIFIER ('.' IDENTIFIER)*
+topLevelDecl
+    : functionDecl
+    | structDecl
+    | interfaceDecl
+    | enumDecl
+    | constDecl
+    | importDecl
     ;
 
-importDeclaration
-    : 'import' importPath
+importDecl
+    : IMPORT importSpec
     ;
 
-importPath
-    : IDENTIFIER ('.' IDENTIFIER)* 
+importSpec
+    : name=IDENTIFIER
+    | name=IDENTIFIER DOT subname=IDENTIFIER
+    | LBRACE IDENTIFIER (COMMA IDENTIFIER)* RBRACE
     ;
 
-statement
-    : variableDeclaration
-    | constDeclaration
-    | assignmentStatement
-    | expressionStatement
-    | printStatement
-    | ifStatement
-    | matchStatement
-    | forStatement
-    | forInStatement
-    | forCStatement
-    | breakStatement
-    | continueStatement
-    | functionDeclaration
-    | structDeclaration
-    | enumDeclaration
-    | interfaceDeclaration
-    | returnStatement
-    | deferStatement
-    | block
+functionDecl
+    : PUB? FN name=IDENTIFIER genericParams? LPAREN params? RPAREN returnType? block
     ;
 
-
-block
-    : '{' statement* '}'
+genericParams
+    : LT IDENTIFIER (COMMA IDENTIFIER)* GT
     ;
 
-variableDeclaration
-    : ('mut')? IDENTIFIER (':' type)? ('=' expression)? ';'
+params
+    : param (COMMA param)*
     ;
 
-constDeclaration
-    : 'const' (
-        '(' (IDENTIFIER '=' expression ';')* ')'
-        | IDENTIFIER '=' expression ';'
+param
+    : MUT? name=IDENTIFIER type
+    ;
+
+structDecl
+    : PUB? STRUCT name=IDENTIFIER LBRACE structField* RBRACE
+    ;
+
+structField
+    : PUB? MUT? name=IDENTIFIER type
+    ;
+
+interfaceDecl
+    : PUB? INTERFACE name=IDENTIFIER LBRACE interfaceMethod* RBRACE
+    ;
+
+interfaceMethod
+    : name=IDENTIFIER LPAREN params? RPAREN returnType?
+    ;
+
+enumDecl
+    : PUB? ENUM name=IDENTIFIER LBRACE enumField (COMMA enumField)* RBRACE
+    ;
+
+enumField
+    : name=IDENTIFIER (ASSIGN expr)?
+    ;
+
+constDecl
+    : PUB? CONST (
+        LPAREN (constField SEMI)* RPAREN
+        | constField
     )
     ;
 
+constField
+    : name=IDENTIFIER ASSIGN expr
+    ;
+
 type
-    : simpleType
+    : name=IDENTIFIER
     | arrayType
     | mapType
     | optionType
-    | structType
-    ;
-
-simpleType
-    : IDENTIFIER
+    | resultType
     ;
 
 arrayType
-    : '[]' type
+    : LBRACK RBRACK type
     ;
 
 mapType
-    : 'map[' type ']' type
+    : MAP LBRACK type RBRACK type
     ;
 
 optionType
-    : '?' type
-    ;
-    
-structType
-    : 'struct' '{' structField* '}'
-    ;
-    
-structField
-    : IDENTIFIER type ';'
+    : QUESTION type
     ;
 
-assignmentStatement
-    : IDENTIFIER ('.' IDENTIFIER)* '=' expression ';'                        // Standard assignment
-    | IDENTIFIER '[' expression ']' '=' expression ';'                       // Array assignment
-    | IDENTIFIER ('.' IDENTIFIER)* ':=' expression ';'                       // Declaration assignment
-    | IDENTIFIER ('.' IDENTIFIER)* ('+=' | '-=' | '*=' | '/=') expression ';' // Compound assignment
+resultType
+    : EXCLAMATION type
     ;
 
-expressionStatement
-    : expression ';'
+block
+    : LBRACE statement* RBRACE
     ;
 
-printStatement
-    : 'println' '(' expression ')' ';'
-    | 'print' '(' expression ')' ';'
-    | 'eprintln' '(' expression ')' ';'
-    | 'eprint' '(' expression ')' ';'
+statement
+    : varDecl
+    | assignment
+    | exprStmt
+    | ifStmt
+    | forStmt
+    | matchStmt
+    | returnStmt
+    | deferStmt
+    | block
     ;
 
-ifStatement
-    : 'if' expression statement ('else' ifStatement | 'else' statement)?
+varDecl
+    : MUT? name=IDENTIFIER (DECL_ASSIGN | COLON type ASSIGN) expr
     ;
 
-matchStatement
-    : 'match' expression '{' matchBranch* '}'
+assignment
+    : expr assignOp expr
+    ;
+
+assignOp
+    : ASSIGN | PLUS_ASSIGN | MINUS_ASSIGN | MULT_ASSIGN | DIV_ASSIGN | MOD_ASSIGN
+    | AND_ASSIGN | OR_ASSIGN | XOR_ASSIGN | LSHIFT_ASSIGN | RSHIFT_ASSIGN | URSHIFT_ASSIGN
+    | LOGICAL_OR_ASSIGN | LOGICAL_AND_ASSIGN
+    ;
+
+exprStmt
+    : expr
+    ;
+
+ifStmt
+    : IF expr block (ELSE (ifStmt | block))?
+    ;
+
+forStmt
+    : FOR (
+        block                                  // infinite loop
+        | expr block                           // while loop
+        | (expr SEMI expr SEMI expr) block     // C-style for
+        | (IDENTIFIER IN expr) block           // for-in loop
+    )
+    ;
+
+matchStmt
+    : MATCH expr LBRACE matchBranch* RBRACE
     ;
 
 matchBranch
-    : matchPattern '{' statement* '}'
+    : (expr | ELSE) ARROW statement
     ;
 
-matchPattern
-    : expression
-    | expression ',' matchPattern
-    | 'else'
+returnStmt
+    : RETURN expr?
     ;
 
-forStatement
-    : 'for' '{' statement* '}' // Infinite loop
+deferStmt
+    : DEFER block
     ;
 
-forInStatement
-    : 'for' IDENTIFIER (',' IDENTIFIER)* 'in' expression '{' statement* '}'
+expr
+    : primary
+    | expr DOT IDENTIFIER                          // field access
+    | expr DOT IDENTIFIER LPAREN exprList? RPAREN  // method call
+    | IDENTIFIER LPAREN exprList? RPAREN           // function call
+    | expr LBRACK expr RBRACK                      // array/map access
+    | (NOT | MINUS | TILDE) expr                   // unary operators
+    | expr (MULT | DIV | MOD) expr                 // multiplicative
+    | expr (PLUS | MINUS) expr                     // additive
+    | expr (LSHIFT | RSHIFT | URSHIFT) expr        // shift
+    | expr (LT | GT | LE | GE) expr                // relational
+    | expr (EQ | NE) expr                          // equality
+    | expr AND expr                                // bitwise AND
+    | expr XOR expr                                // bitwise XOR
+    | expr OR expr                                 // bitwise OR
+    | expr LOGICAL_AND expr                        // logical AND
+    | expr LOGICAL_OR expr                         // logical OR
+    | expr QUESTION expr COLON expr                // ternary
+    | <assoc=right> expr ASSIGN expr               // assignment
     ;
 
-forCStatement
-    : 'for' expression '{' statement* '}' // Condition-only loop (while loop)
+primary
+    : IDENTIFIER
+    | literal
+    | arrayLiteral
+    | mapLiteral
+    | structLiteral
+    | LPAREN expr RPAREN
     ;
 
-deferStatement
-    : 'defer' (block | expression ';')
+literal
+    : INT
+    | FLOAT
+    | STRING
+    | CHAR
+    | TRUE
+    | FALSE
+    | NONE
     ;
 
-breakStatement
-    : 'break' ';'
+arrayLiteral
+    : LBRACK exprList? RBRACK
+    | LBRACK type RBRACK LBRACE exprList? RBRACE
     ;
 
-continueStatement
-    : 'continue' ';'
+mapLiteral
+    : LBRACE (mapElement (COMMA mapElement)*)? RBRACE
     ;
 
-functionDeclaration
-    : ('pub')? 'fn' IDENTIFIER '(' parameterList? ')' returnType? block
+mapElement
+    : expr COLON expr
     ;
 
-parameterList
-    : parameter (',' parameter)*
+structLiteral
+    : type LBRACE (structElement (COMMA structElement)*)? RBRACE
     ;
 
-parameter
-    : ('mut')? IDENTIFIER type
+structElement
+    : IDENTIFIER COLON expr
+    ;
+
+exprList
+    : expr (COMMA expr)*
     ;
 
 returnType
     : type
     ;
 
-structDeclaration
-    : ('pub')? 'struct' IDENTIFIER '{' structField* '}'
-    ;
-
-enumDeclaration
-    : ('pub')? 'enum' IDENTIFIER '{' enumValue (',' enumValue)* '}'
-    ;
-
-enumValue
-    : IDENTIFIER
-    | IDENTIFIER '=' expression
-    ;
-
-interfaceDeclaration
-    : ('pub')? 'interface' IDENTIFIER '{' interfaceMethod* '}'
-    ;
-
-interfaceMethod
-    : IDENTIFIER '(' parameterList? ')' returnType? ';'
-    ;
-
-returnStatement
-    : 'return' expression? ';'
-    ;
-
-expression
-    : assignment
-    ;
-
-assignment
-    : logicalOr
-    | IDENTIFIER (':=' | '=' | '+=' | '-=' | '*=' | '/=' | '%=') expression
-    ;
-
-logicalOr
-    : logicalAnd ('||' logicalAnd)*
-    ;
-
-logicalAnd
-    : equality ('&&' equality)*
-    ;
-
-equality
-    : comparison (('==' | '!=') comparison)*
-    ;
-
-comparison
-    : addition (('<' | '>' | '<=' | '>=') addition)*
-    ;
-
-addition
-    : multiplication (('+' | '-') multiplication)*
-    ;
-
-multiplication
-    : unary (('*' | '/' | '%') unary)*
-    ;
-
-unary
-    : ('!' | '-') unary
-    | primary
-    ;
-
-primary
-    : '(' expression ')'
-    | functionCall
-    | methodCall
-    | arrayAccess
-    | arrayLiteral
-    | mapLiteral
-    | selectorExpression
-    | optionCheck
-    | NUMBER
-    | STRING
-    | 'true'
-    | 'false'
-    | 'none'
-    | IDENTIFIER
-    ;
-    
-selectorExpression
-    : primary '.' IDENTIFIER
-    ;
-    
-methodCall
-    : primary '.' IDENTIFIER '(' argumentList? ')'
-    ;
-    
-optionCheck
-    : primary '?' // exists check
-    | primary 'or' '{' statement* '}' // unwrap with alternative
-    | primary 'or' expression // unwrap with alternative expression
-    ;
-
-functionCall
-    : IDENTIFIER '(' argumentList? ')'
-    ;
-
-argumentList
-    : expression (',' expression)*
-    | namedArgument (',' namedArgument)*
-    ;
-
-namedArgument
-    : IDENTIFIER ':' expression
-    ;
-
-arrayAccess
-    : primary '[' expression ']'
-    ;
-
-arrayLiteral
-    : '[' (expression (',' expression)*)? ']'
-    | '[' type ']{' (expression (',' expression)*)? '}'
-    ;
-
-mapLiteral
-    : '{' (mapEntry (',' mapEntry)*)? '}'
-    | 'map[' type ']' type '{' (mapEntry (',' mapEntry)*)? '}'
-    ;
-
-mapEntry
-    : expression ':' expression
-    ;
-
 // Lexer Rules
-NUMBER
-    : INT ('.' [0-9]+)?
-    | INT ('.' [0-9]+)? [eE] [+-]? INT  // Scientific notation
-    | '0x' [0-9a-fA-F]+                  // Hex notation
-    | '0o' [0-7]+                        // Octal notation
-    | '0b' [01]+                         // Binary notation
+MODULE: 'module';
+IMPORT: 'import';
+PUB: 'pub';
+FN: 'fn';
+STRUCT: 'struct';
+INTERFACE: 'interface';
+ENUM: 'enum';
+CONST: 'const';
+MUT: 'mut';
+TYPE: 'type';
+IF: 'if';
+ELSE: 'else';
+FOR: 'for';
+IN: 'in';
+MATCH: 'match';
+RETURN: 'return';
+DEFER: 'defer';
+TRUE: 'true';
+FALSE: 'false';
+NONE: 'none';
+MAP: 'map';
+
+// Operators and punctuation
+LPAREN: '(';
+RPAREN: ')';
+LBRACE: '{';
+RBRACE: '}';
+LBRACK: '[';
+RBRACK: ']';
+LT: '<';
+GT: '>';
+LE: '<=';
+GE: '>=';
+EQ: '==';
+NE: '!=';
+AND: '&';
+OR: '|';
+XOR: '^';
+NOT: '!';
+TILDE: '~';
+QUESTION: '?';
+COLON: ':';
+SEMI: ';';
+COMMA: ',';
+DOT: '.';
+ASSIGN: '=';
+ARROW: '=>';
+EXCLAMATION: '!';
+
+// Arithmetic operators
+PLUS: '+';
+MINUS: '-';
+MULT: '*';
+DIV: '/';
+MOD: '%';
+LSHIFT: '<<';
+RSHIFT: '>>';
+URSHIFT: '>>>';
+
+// Assignment operators
+PLUS_ASSIGN: '+=';
+MINUS_ASSIGN: '-=';
+MULT_ASSIGN: '*=';
+DIV_ASSIGN: '/=';
+MOD_ASSIGN: '%=';
+AND_ASSIGN: '&=';
+OR_ASSIGN: '|=';
+XOR_ASSIGN: '^=';
+LSHIFT_ASSIGN: '<<=';
+RSHIFT_ASSIGN: '>>=';
+URSHIFT_ASSIGN: '>>>=';
+LOGICAL_OR_ASSIGN: '||=';
+LOGICAL_AND_ASSIGN: '&&=';
+
+// Logical operators
+LOGICAL_OR: '||';
+LOGICAL_AND: '&&';
+DECL_ASSIGN: ':=';
+
+// Identifiers and literals
+IDENTIFIER
+    : [a-zA-Z_][a-zA-Z0-9_]*
     ;
 
 INT
-    : '0' | [1-9][0-9]* | [0-9]+ '_' [0-9]+ // Support for numbers with underscores like 1_000_000
+    : [0-9]+
+    | '0x' [0-9a-fA-F]+
+    | '0o' [0-7]+
+    | '0b' [0-1]+
+    | [0-9]+ '_' [0-9]+
+    ;
+
+FLOAT
+    : [0-9]+ '.' [0-9]*
+    | '.' [0-9]+
+    | [0-9]+ ('.' [0-9]*)? [eE] [+-]? [0-9]+
     ;
 
 STRING
-    : '"' (~["\\] | '\\' .)* '"'     // Regular string
-    | '`' (~[`])* '`'                    // Raw string
-    | "'" (~[']) "'"                     // Character/rune
-    | '@"' (~["\\] | '\\' .)* '"'    // V-style identifier interpolation
+    : '"' (~["\\] | '\\' .)* '"'
+    | '`' (~[`])* '`'
     ;
 
-IDENTIFIER
-    : [a-zA-Z_][a-zA-Z_0-9]*
-    ;
-
-COMMENT
-    : '//' ~[\r\n]* -> skip
-    ;
-
-BLOCK_COMMENT
-    : '/*' .*? '*/' -> skip
+CHAR
+    : '\'' (~[']) '\''
     ;
 
 WHITESPACE
     : [ \t\r\n]+ -> skip
+    ;
+
+SINGLE_LINE_COMMENT
+    : '//' ~[\r\n]* -> skip
+    ;
+
+MULTI_LINE_COMMENT
+    : '/*' .*? '*/' -> skip
     ;
