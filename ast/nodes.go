@@ -300,3 +300,326 @@ func (f *FunctionCallExpression) expressionNode() {}
 func (f *FunctionCallExpression) Accept(visitor Visitor) interface{} {
 	return visitor.VisitFunctionCallExpression(f)
 }
+
+// V Language Specific AST Nodes
+
+// ModuleDeclaration represents a V module declaration
+type ModuleDeclaration struct {
+	Name string
+}
+
+func (m *ModuleDeclaration) statementNode() {}
+
+// Accept implements the Node interface
+func (m *ModuleDeclaration) Accept(visitor Visitor) interface{} {
+	if vVisitor, ok := visitor.(VVisitor); ok {
+		return vVisitor.VisitModuleDeclaration(m)
+	}
+	return nil
+}
+
+// ImportDeclaration represents a V import declaration
+type ImportDeclaration struct {
+	Path string
+}
+
+func (i *ImportDeclaration) statementNode() {}
+
+// Accept implements the Node interface
+func (i *ImportDeclaration) Accept(visitor Visitor) interface{} {
+	if vVisitor, ok := visitor.(VVisitor); ok {
+		return vVisitor.VisitImportDeclaration(i)
+	}
+	return nil
+}
+
+// ConstDeclaration represents a V const declaration
+type ConstDeclaration struct {
+	Name  string
+	Value Expression
+}
+
+func (c *ConstDeclaration) statementNode() {}
+
+// Accept implements the Node interface
+func (c *ConstDeclaration) Accept(visitor Visitor) interface{} {
+	if vVisitor, ok := visitor.(VVisitor); ok {
+		return vVisitor.VisitConstDeclaration(c)
+	}
+	return nil
+}
+
+// TypedVariable represents a variable with a type in V
+type TypedVariable struct {
+	Name        string
+	TypeName    string
+	IsMutable   bool
+	Initializer Expression
+}
+
+func (v *TypedVariable) statementNode() {}
+
+// Accept implements the Node interface
+func (v *TypedVariable) Accept(visitor Visitor) interface{} {
+	if vVisitor, ok := visitor.(VVisitor); ok {
+		return vVisitor.VisitTypedVariable(v)
+	}
+	return nil
+}
+
+// StructDeclaration represents a V struct declaration
+type StructDeclaration struct {
+	Name     string
+	IsPublic bool
+	Fields   []StructField
+}
+
+func (s *StructDeclaration) statementNode() {}
+
+// Accept implements the Node interface
+func (s *StructDeclaration) Accept(visitor Visitor) interface{} {
+	if vVisitor, ok := visitor.(VVisitor); ok {
+		return vVisitor.VisitStructDeclaration(s)
+	}
+	return nil
+}
+
+// StructField represents a field in a struct
+type StructField struct {
+	Name     string
+	Type     string
+	IsMutable bool
+}
+
+// EnumDeclaration represents a V enum declaration
+type EnumDeclaration struct {
+	Name     string
+	IsPublic bool
+	Values   []EnumValue
+}
+
+func (e *EnumDeclaration) statementNode() {}
+
+// Accept implements the Node interface
+func (e *EnumDeclaration) Accept(visitor Visitor) interface{} {
+	if vVisitor, ok := visitor.(VVisitor); ok {
+		return vVisitor.VisitEnumDeclaration(e)
+	}
+	return nil
+}
+
+// EnumValue represents a value in an enum
+type EnumValue struct {
+	Name  string
+	Value Expression // Optional explicit value
+}
+
+// InterfaceDeclaration represents a V interface declaration
+type InterfaceDeclaration struct {
+	Name     string
+	IsPublic bool
+	Methods  []InterfaceMethod
+}
+
+func (i *InterfaceDeclaration) statementNode() {}
+
+// Accept implements the Node interface
+func (i *InterfaceDeclaration) Accept(visitor Visitor) interface{} {
+	if vVisitor, ok := visitor.(VVisitor); ok {
+		return vVisitor.VisitInterfaceDeclaration(i)
+	}
+	return nil
+}
+
+// InterfaceMethod represents a method in an interface
+type InterfaceMethod struct {
+	Name       string
+	Params     []Parameter
+	ReturnType string
+}
+
+// Parameter represents a function parameter
+type Parameter struct {
+	Name     string
+	Type     string
+	IsMutable bool
+}
+
+// VFunctionDeclaration represents a V function declaration with a receiver for methods
+type VFunctionDeclaration struct {
+	Name       string
+	IsPublic   bool
+	Receiver   *Parameter // Optional receiver for methods
+	Params     []Parameter
+	ReturnType string
+	Body       *Block
+}
+
+func (f *VFunctionDeclaration) statementNode() {}
+
+// Accept implements the Node interface
+func (f *VFunctionDeclaration) Accept(visitor Visitor) interface{} {
+	if vVisitor, ok := visitor.(VVisitor); ok {
+		return vVisitor.VisitVFunctionDeclaration(f)
+	}
+	return nil
+}
+
+// MatchStatement represents a V match statement (similar to switch)
+type MatchStatement struct {
+	Subject  Expression
+	Branches []*MatchBranch
+}
+
+func (m *MatchStatement) statementNode() {}
+
+// Accept implements the Node interface
+func (m *MatchStatement) Accept(visitor Visitor) interface{} {
+	if vVisitor, ok := visitor.(VVisitor); ok {
+		return vVisitor.VisitMatchStatement(m)
+	}
+	return nil
+}
+
+// MatchBranch represents a branch in a match statement
+type MatchBranch struct {
+	Patterns []Expression // Can be multiple patterns separated by comma
+	Body     []Statement
+	IsElse   bool
+}
+
+// ForInStatement represents a V for-in loop (for item in collection)
+type ForInStatement struct {
+	IndexVariable string // Optional index variable name
+	ValueVariable string // Value variable name
+	Iterable      Expression
+	Body          []Statement
+}
+
+func (f *ForInStatement) statementNode() {}
+
+// Accept implements the Node interface
+func (f *ForInStatement) Accept(visitor Visitor) interface{} {
+	if vVisitor, ok := visitor.(VVisitor); ok {
+		return vVisitor.VisitForInStatement(f)
+	}
+	return nil
+}
+
+// ForCStatement represents a V for loop with only a condition (while loop)
+type ForCStatement struct {
+	Condition Expression
+	Body      []Statement
+}
+
+func (f *ForCStatement) statementNode() {}
+
+// Accept implements the Node interface
+func (f *ForCStatement) Accept(visitor Visitor) interface{} {
+	if vVisitor, ok := visitor.(VVisitor); ok {
+		return vVisitor.VisitForCStatement(f)
+	}
+	return nil
+}
+
+// DeferStatement represents a V defer statement
+type DeferStatement struct {
+	Statement Statement
+}
+
+func (d *DeferStatement) statementNode() {}
+
+// Accept implements the Node interface
+func (d *DeferStatement) Accept(visitor Visitor) interface{} {
+	if vVisitor, ok := visitor.(VVisitor); ok {
+		return vVisitor.VisitDeferStatement(d)
+	}
+	return nil
+}
+
+// SelectorExpression represents a V field access expression (x.y)
+type SelectorExpression struct {
+	Object Expression
+	Field  string
+}
+
+func (s *SelectorExpression) expressionNode() {}
+
+// Accept implements the Node interface
+func (s *SelectorExpression) Accept(visitor Visitor) interface{} {
+	if vVisitor, ok := visitor.(VVisitor); ok {
+		return vVisitor.VisitSelectorExpression(s)
+	}
+	return nil
+}
+
+// MethodCallExpression represents a V method call expression (x.method())
+type MethodCallExpression struct {
+	Object    Expression
+	Method    string
+	Arguments []Expression
+}
+
+func (m *MethodCallExpression) expressionNode() {}
+
+// Accept implements the Node interface
+func (m *MethodCallExpression) Accept(visitor Visitor) interface{} {
+	if vVisitor, ok := visitor.(VVisitor); ok {
+		return vVisitor.VisitMethodCallExpression(m)
+	}
+	return nil
+}
+
+// MapLiteralExpression represents a V map literal
+type MapLiteralExpression struct {
+	KeyType   string
+	ValueType string
+	Entries   []MapEntry
+}
+
+func (m *MapLiteralExpression) expressionNode() {}
+
+// Accept implements the Node interface
+func (m *MapLiteralExpression) Accept(visitor Visitor) interface{} {
+	if vVisitor, ok := visitor.(VVisitor); ok {
+		return vVisitor.VisitMapLiteralExpression(m)
+	}
+	return nil
+}
+
+// MapEntry represents a key-value pair in a map
+type MapEntry struct {
+	Key   Expression
+	Value Expression
+}
+
+// OptionalExpression represents a V option type expression
+type OptionalExpression struct {
+	Expression Expression
+}
+
+func (o *OptionalExpression) expressionNode() {}
+
+// Accept implements the Node interface
+func (o *OptionalExpression) Accept(visitor Visitor) interface{} {
+	if vVisitor, ok := visitor.(VVisitor); ok {
+		return vVisitor.VisitOptionalExpression(o)
+	}
+	return nil
+}
+
+// OrBlockExpression represents the block in an "or" expression for handling None
+type OrBlockExpression struct {
+	Expression Expression
+	OrBlock    []Statement
+}
+
+func (o *OrBlockExpression) expressionNode() {}
+
+// Accept implements the Node interface
+func (o *OrBlockExpression) Accept(visitor Visitor) interface{} {
+	if vVisitor, ok := visitor.(VVisitor); ok {
+		return vVisitor.VisitOrBlockExpression(o)
+	}
+	return nil
+}

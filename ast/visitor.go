@@ -62,3 +62,56 @@ func (v *BaseVisitor) VisitVariableExpression(expression *VariableExpression) in
 func (v *BaseVisitor) VisitArrayAccessExpression(expression *ArrayAccessExpression) interface{} { return nil }
 func (v *BaseVisitor) VisitArrayLiteralExpression(expression *ArrayLiteralExpression) interface{} { return nil }
 func (v *BaseVisitor) VisitFunctionCallExpression(expression *FunctionCallExpression) interface{} { return nil }
+
+// VVisitor extends the Visitor interface with V language specific node visitors
+type VVisitor interface {
+	// Override the base Visitor interface
+	Visitor
+	
+	// V-specific statement nodes
+	VisitModuleDeclaration(module *ModuleDeclaration) interface{}
+	VisitImportDeclaration(imp *ImportDeclaration) interface{}
+	VisitConstDeclaration(constant *ConstDeclaration) interface{}
+	VisitTypedVariable(variable *TypedVariable) interface{}
+	VisitStructDeclaration(structDecl *StructDeclaration) interface{}
+	VisitEnumDeclaration(enumDecl *EnumDeclaration) interface{}
+	VisitInterfaceDeclaration(interfaceDecl *InterfaceDeclaration) interface{}
+	VisitVFunctionDeclaration(function *VFunctionDeclaration) interface{}
+	VisitMatchStatement(match *MatchStatement) interface{}
+	VisitForInStatement(forIn *ForInStatement) interface{}
+	VisitForCStatement(forC *ForCStatement) interface{}
+	VisitDeferStatement(defer *DeferStatement) interface{}
+	
+	// V-specific expression nodes
+	VisitSelectorExpression(selector *SelectorExpression) interface{}
+	VisitMethodCallExpression(methodCall *MethodCallExpression) interface{}
+	VisitMapLiteralExpression(mapLiteral *MapLiteralExpression) interface{}
+	VisitOptionalExpression(optional *OptionalExpression) interface{}
+	VisitOrBlockExpression(orBlock *OrBlockExpression) interface{}
+}
+
+// VBaseVisitor provides a default implementation of VVisitor
+type VBaseVisitor struct {
+	BaseVisitor
+}
+
+// V-specific statement nodes
+func (v *VBaseVisitor) VisitModuleDeclaration(module *ModuleDeclaration) interface{} { return nil }
+func (v *VBaseVisitor) VisitImportDeclaration(imp *ImportDeclaration) interface{} { return nil }
+func (v *VBaseVisitor) VisitConstDeclaration(constant *ConstDeclaration) interface{} { return nil }
+func (v *VBaseVisitor) VisitTypedVariable(variable *TypedVariable) interface{} { return nil }
+func (v *VBaseVisitor) VisitStructDeclaration(structDecl *StructDeclaration) interface{} { return nil }
+func (v *VBaseVisitor) VisitEnumDeclaration(enumDecl *EnumDeclaration) interface{} { return nil }
+func (v *VBaseVisitor) VisitInterfaceDeclaration(interfaceDecl *InterfaceDeclaration) interface{} { return nil }
+func (v *VBaseVisitor) VisitVFunctionDeclaration(function *VFunctionDeclaration) interface{} { return nil }
+func (v *VBaseVisitor) VisitMatchStatement(match *MatchStatement) interface{} { return nil }
+func (v *VBaseVisitor) VisitForInStatement(forIn *ForInStatement) interface{} { return nil }
+func (v *VBaseVisitor) VisitForCStatement(forC *ForCStatement) interface{} { return nil }
+func (v *VBaseVisitor) VisitDeferStatement(defer *DeferStatement) interface{} { return nil }
+
+// V-specific expression nodes
+func (v *VBaseVisitor) VisitSelectorExpression(selector *SelectorExpression) interface{} { return nil }
+func (v *VBaseVisitor) VisitMethodCallExpression(methodCall *MethodCallExpression) interface{} { return nil }
+func (v *VBaseVisitor) VisitMapLiteralExpression(mapLiteral *MapLiteralExpression) interface{} { return nil }
+func (v *VBaseVisitor) VisitOptionalExpression(optional *OptionalExpression) interface{} { return nil }
+func (v *VBaseVisitor) VisitOrBlockExpression(orBlock *OrBlockExpression) interface{} { return nil }

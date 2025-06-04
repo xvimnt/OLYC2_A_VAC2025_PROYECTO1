@@ -1,38 +1,101 @@
 grammar MyLang;
 
-// Parser Rules
+// Parser Rules for V language
 program
-    : statement* EOF
+    : moduleDeclaration? importDeclaration* statement* EOF
+    ;
+
+moduleDeclaration
+    : 'module' moduleName
+    ;
+
+moduleName
+    : IDENTIFIER ('.' IDENTIFIER)*
+    ;
+
+importDeclaration
+    : 'import' importPath
+    ;
+
+importPath
+    : IDENTIFIER ('.' IDENTIFIER)* 
     ;
 
 statement
     : variableDeclaration
+    | constDeclaration
     | assignmentStatement
     | expressionStatement
     | printStatement
     | ifStatement
-    | whileStatement
-    | doWhileStatement
+    | matchStatement
     | forStatement
-    | switchStatement
+    | forInStatement
+    | forCStatement
     | breakStatement
     | continueStatement
     | functionDeclaration
+    | structDeclaration
+    | enumDeclaration
+    | interfaceDeclaration
     | returnStatement
+    | deferStatement
     | block
     ;
+
 
 block
     : '{' statement* '}'
     ;
 
 variableDeclaration
-    : 'var' IDENTIFIER ('=' expression)? ';'
+    : ('mut')? IDENTIFIER (':' type)? ('=' expression)? ';'
+    ;
+
+constDeclaration
+    : 'const' (
+        '(' (IDENTIFIER '=' expression ';')* ')'
+        | IDENTIFIER '=' expression ';'
+    )
+    ;
+
+type
+    : simpleType
+    | arrayType
+    | mapType
+    | optionType
+    | structType
+    ;
+
+simpleType
+    : IDENTIFIER
+    ;
+
+arrayType
+    : '[]' type
+    ;
+
+mapType
+    : 'map[' type ']' type
+    ;
+
+optionType
+    : '?' type
+    ;
+    
+structType
+    : 'struct' '{' structField* '}'
+    ;
+    
+structField
+    : IDENTIFIER type ';'
     ;
 
 assignmentStatement
-    : IDENTIFIER '=' expression ';'
-    | IDENTIFIER '[' expression ']' '=' expression ';'  // Array assignment
+    : IDENTIFIER ('.' IDENTIFIER)* '=' expression ';'                        // Standard assignment
+    | IDENTIFIER '[' expression ']' '=' expression ';'                       // Array assignment
+    | IDENTIFIER ('.' IDENTIFIER)* ':=' expression ';'                       // Declaration assignment
+    | IDENTIFIER ('.' IDENTIFIER)* ('+=' | '-=' | '*=' | '/=') expression ';' // Compound assignment
     ;
 
 expressionStatement
@@ -40,35 +103,44 @@ expressionStatement
     ;
 
 printStatement
-    : 'print' '(' expression ')' ';'
+    : 'println' '(' expression ')' ';'
+    | 'print' '(' expression ')' ';'
+    | 'eprintln' '(' expression ')' ';'
+    | 'eprint' '(' expression ')' ';'
     ;
 
 ifStatement
-    : 'if' '(' expression ')' statement ('else' statement)?
+    : 'if' expression statement ('else' ifStatement | 'else' statement)?
     ;
 
-whileStatement
-    : 'while' '(' expression ')' statement
+matchStatement
+    : 'match' expression '{' matchBranch* '}'
     ;
 
-doWhileStatement
-    : 'do' statement 'while' '(' expression ')' ';'
+matchBranch
+    : matchPattern '{' statement* '}'
+    ;
+
+matchPattern
+    : expression
+    | expression ',' matchPattern
+    | 'else'
     ;
 
 forStatement
-    : 'for' '(' (variableDeclaration | expressionStatement | ';') expression? ';' expression? ')' statement
+    : 'for' '{' statement* '}' // Infinite loop
     ;
 
-switchStatement
-    : 'switch' '(' expression ')' '{' switchCase* defaultCase? '}'
+forInStatement
+    : 'for' IDENTIFIER (',' IDENTIFIER)* 'in' expression '{' statement* '}'
     ;
 
-switchCase
-    : 'case' expression ':' statement*
+forCStatement
+    : 'for' expression '{' statement* '}' // Condition-only loop (while loop)
     ;
 
-defaultCase
-    : 'default' ':' statement*
+deferStatement
+    : 'defer' (block | expression ';')
     ;
 
 breakStatement
@@ -80,11 +152,40 @@ continueStatement
     ;
 
 functionDeclaration
-    : 'function' IDENTIFIER '(' parameterList? ')' block
+    : ('pub')? 'fn' IDENTIFIER '(' parameterList? ')' returnType? block
     ;
 
 parameterList
-    : IDENTIFIER (',' IDENTIFIER)*
+    : parameter (',' parameter)*
+    ;
+
+parameter
+    : ('mut')? IDENTIFIER type
+    ;
+
+returnType
+    : type
+    ;
+
+structDeclaration
+    : ('pub')? 'struct' IDENTIFIER '{' structField* '}'
+    ;
+
+enumDeclaration
+    : ('pub')? 'enum' IDENTIFIER '{' enumValue (',' enumValue)* '}'
+    ;
+
+enumValue
+    : IDENTIFIER
+    | IDENTIFIER '=' expression
+    ;
+
+interfaceDeclaration
+    : ('pub')? 'interface' IDENTIFIER '{' interfaceMethod* '}'
+    ;
+
+interfaceMethod
+    : IDENTIFIER '(' parameterList? ')' returnType? ';'
     ;
 
 returnStatement
@@ -97,6 +198,7 @@ expression
 
 assignment
     : logicalOr
+    | IDENTIFIER (':=' | '=' | '+=' | '-=' | '*=' | '/=' | '%=') expression
     ;
 
 logicalOr
@@ -131,13 +233,32 @@ unary
 primary
     : '(' expression ')'
     | functionCall
+    | methodCall
     | arrayAccess
     | arrayLiteral
+    | mapLiteral
+    | selectorExpression
+    | optionCheck
     | NUMBER
     | STRING
     | 'true'
     | 'false'
+    | 'none'
     | IDENTIFIER
+    ;
+    
+selectorExpression
+    : primary '.' IDENTIFIER
+    ;
+    
+methodCall
+    : primary '.' IDENTIFIER '(' argumentList? ')'
+    ;
+    
+optionCheck
+    : primary '?' // exists check
+    | primary 'or' '{' statement* '}' // unwrap with alternative
+    | primary 'or' expression // unwrap with alternative expression
     ;
 
 functionCall
@@ -146,27 +267,49 @@ functionCall
 
 argumentList
     : expression (',' expression)*
+    | namedArgument (',' namedArgument)*
+    ;
+
+namedArgument
+    : IDENTIFIER ':' expression
     ;
 
 arrayAccess
-    : IDENTIFIER '[' expression ']'
+    : primary '[' expression ']'
     ;
 
 arrayLiteral
     : '[' (expression (',' expression)*)? ']'
+    | '[' type ']{' (expression (',' expression)*)? '}'
+    ;
+
+mapLiteral
+    : '{' (mapEntry (',' mapEntry)*)? '}'
+    | 'map[' type ']' type '{' (mapEntry (',' mapEntry)*)? '}'
+    ;
+
+mapEntry
+    : expression ':' expression
     ;
 
 // Lexer Rules
 NUMBER
     : INT ('.' [0-9]+)?
+    | INT ('.' [0-9]+)? [eE] [+-]? INT  // Scientific notation
+    | '0x' [0-9a-fA-F]+                  // Hex notation
+    | '0o' [0-7]+                        // Octal notation
+    | '0b' [01]+                         // Binary notation
     ;
 
 INT
-    : '0' | [1-9][0-9]*
+    : '0' | [1-9][0-9]* | [0-9]+ '_' [0-9]+ // Support for numbers with underscores like 1_000_000
     ;
 
 STRING
-    : '"' (~["\\] | '\\' .)* '"'
+    : '"' (~["\\] | '\\' .)* '"'     // Regular string
+    | '`' (~[`])* '`'                    // Raw string
+    | "'" (~[']) "'"                     // Character/rune
+    | '@"' (~["\\] | '\\' .)* '"'    // V-style identifier interpolation
     ;
 
 IDENTIFIER
